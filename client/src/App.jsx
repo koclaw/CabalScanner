@@ -6,6 +6,7 @@ function App() {
   const [cabals, setCabals] = useState([])
   const [loading, setLoading] = useState(false)
   const [scanning, setScanning] = useState(false)
+  const [timeframe, setTimeframe] = useState('24h') // 24h, 7d, custom
 
   // Fetch Volume Data
   const fetchVolume = async () => {
@@ -27,7 +28,11 @@ function App() {
   const scanCabals = async () => {
     setScanning(true)
     try {
-      const res = await fetch(`http://localhost:5000/api/scan/${tokenAddress}`, { method: 'POST' })
+      const res = await fetch(`http://localhost:5000/api/scan/${tokenAddress}`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeframe })
+      })
       const data = await res.json()
       if (data.success) {
         // Refresh cabal list
@@ -94,6 +99,17 @@ function App() {
                 className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
                 placeholder="Enter SOL token address..."
               />
+              
+              <select 
+                value={timeframe}
+                onChange={(e) => setTimeframe(e.target.value)}
+                className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all text-gray-700"
+              >
+                <option value="24h">Last 24h</option>
+                <option value="7d">Last 7d</option>
+                <option value="custom">Custom</option>
+              </select>
+
               <button 
                 onClick={fetchVolume}
                 disabled={loading}
