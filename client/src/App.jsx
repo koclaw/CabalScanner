@@ -1,141 +1,256 @@
 import { useState, useEffect } from 'react'
 
 function App() {
+  const [tokenAddress, setTokenAddress] = useState('DLMmRN9rbZspAAC3a1HgDHMC893Y2Ca9GjoNh9StwnYG')
+  const [volumeData, setVolumeData] = useState([])
   const [cabals, setCabals] = useState([])
-  const [address, setAddress] = useState('')
   const [loading, setLoading] = useState(false)
+  const [scanning, setScanning] = useState(false)
 
-  // Fetch Cabal Data (Mock for now, would connect to backend)
+  // Fetch Volume Data
+  const fetchVolume = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`http://localhost:5000/api/volume/${tokenAddress}`)
+      const data = await res.json()
+      if (data.success) {
+        setVolumeData(data.heatmap)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Scan for Cabals
+  const scanCabals = async () => {
+    setScanning(true)
+    try {
+      const res = await fetch(`http://localhost:5000/api/scan/${tokenAddress}`, { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        // Refresh cabal list
+        fetchCabals()
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  const fetchCabals = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/cabals')
+      const data = await res.json()
+      setCabals(data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   useEffect(() => {
-    // In a real app, fetch from /api/cabals
-    // fetch('http://localhost:5000/api/cabals')
-    //   .then(res => res.json())
-    //   .then(data => setCabals(data))
-    
-    // Mock Data for UI Dev
-    setCabals([
-      { id: 1, leader: 'HG7...x9z', followers: 12, volume: '$4.2M', tags: ['High Vol', 'Insider'] },
-      { id: 2, leader: 'Sol...Ck1', followers: 8, volume: '$1.1M', tags: ['Accumulator'] },
-    ])
+    if (tokenAddress) {
+      fetchVolume()
+      fetchCabals()
+    }
   }, [])
 
-  const handleTrack = async (e) => {
-    e.preventDefault()
-    if (!address) return
-    setLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setCabals([...cabals, { id: Date.now(), leader: address.substring(0, 6) + '...' + address.substring(address.length - 4), followers: 0, volume: '$0', tags: ['New'] }])
-      setAddress('')
-      setLoading(false)
-    }, 1000)
+  // Helper to get color intensity for heatmap (GREEN)
+  const getIntensity = (count) => {
+    if (count === 0) return 'bg-gray-50'
+    if (count < 5) return 'bg-green-100'
+    if (count < 10) return 'bg-green-300'
+    if (count < 20) return 'bg-green-500'
+    return 'bg-green-700'
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-mono p-8">
-      <header className="mb-12 flex justify-between items-center border-b border-gray-700 pb-4">
-        <div>
-          <h1 className="text-3xl font-bold text-green-400">CabalScanner_</h1>
-          <p className="text-gray-400 text-sm mt-1">Detect insider wallets & follower clusters on Solana</p>
+    <div className="min-h-screen bg-white text-gray-900 font-sans p-8">
+      {/* Header */}
+      <header className="mb-8 flex justify-between items-center border-b border-gray-200 pb-4">
+        <div className="flex items-center gap-4">
+          <div className="w-8 h-8 bg-black rounded-full"></div>
+          <h1 className="text-xl font-semibold tracking-tight">CabalScanner</h1>
         </div>
-        <div className="text-right text-xs text-gray-500">
-          <p>Status: ONLINE</p>
-          <p>Helius RPC: CONNECTED</p>
+        <div className="flex gap-4">
+           <button className="text-sm font-medium text-gray-500 hover:text-black transition-colors">Documentation</button>
+           <button className="text-sm font-medium text-gray-500 hover:text-black transition-colors">Connect Wallet</button>
         </div>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Input */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-lg">
-            <h2 className="text-xl font-semibold mb-4 text-green-300">Track New Wallet</h2>
-            <form onSubmit={handleTrack} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Wallet Address</label>
-                <input 
-                  type="text" 
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-green-500 transition-colors"
-                  placeholder="Enter SOL address..."
-                />
-              </div>
+      <main className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Search & Actions */}
+        <div className="flex gap-4 items-end">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Token Contract Address</label>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                value={tokenAddress}
+                onChange={(e) => setTokenAddress(e.target.value)}
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                placeholder="Enter SOL token address..."
+              />
               <button 
-                type="submit" 
+                onClick={fetchVolume}
                 disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
+                className="bg-white border border-gray-200 hover:border-gray-400 text-black font-medium px-6 py-3 rounded-lg text-sm transition-all shadow-sm"
               >
-                {loading ? 'Scanning...' : 'Start Tracking'}
+                {loading ? 'Loading...' : 'Load Data'}
               </button>
-            </form>
-          </div>
-
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-lg">
-            <h2 className="text-xl font-semibold mb-4 text-blue-300">Live Feed</h2>
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center text-gray-400 border-b border-gray-700 pb-2">
-                <span>TX: 5x9...jK2</span>
-                <span className="text-green-400">BUY 500 SOL</span>
-              </div>
-              <div className="flex justify-between items-center text-gray-400 border-b border-gray-700 pb-2">
-                <span>TX: 8z1...mL9</span>
-                <span className="text-red-400">SELL 200 SOL</span>
-              </div>
-              <div className="flex justify-between items-center text-gray-400">
-                <span>TX: 2a4...pQ7</span>
-                <span className="text-blue-400">SWAP USDC</span>
-              </div>
+              <button 
+                onClick={scanCabals}
+                disabled={scanning}
+                className="bg-black text-white hover:bg-gray-800 font-medium px-6 py-3 rounded-lg text-sm transition-all shadow-sm flex items-center gap-2"
+              >
+                {scanning ? (
+                  <>
+                    <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                    Scanning...
+                  </>
+                ) : 'Run Cabal Scan'}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Results */}
-        <div className="lg:col-span-2">
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-lg h-full">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-purple-300">Detected Cabals</h2>
-              <button className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded">Refresh</button>
+        {/* Heatmap Section */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-lg font-semibold">Activity Heatmap</h2>
+              <p className="text-sm text-gray-500 mt-1">Transaction volume over time</p>
             </div>
-            
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>Less</span>
+              <div className="flex gap-1">
+                <div className="w-3 h-3 rounded-sm bg-gray-50 border border-gray-100"></div>
+                <div className="w-3 h-3 rounded-sm bg-green-100"></div>
+                <div className="w-3 h-3 rounded-sm bg-green-300"></div>
+                <div className="w-3 h-3 rounded-sm bg-green-500"></div>
+                <div className="w-3 h-3 rounded-sm bg-green-700"></div>
+              </div>
+              <span>More</span>
+            </div>
+          </div>
+          
+          <div className="flex gap-1 overflow-x-auto pb-2 min-h-[140px] items-end">
+            {volumeData.length === 0 ? (
+               <div className="w-full h-32 flex items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                 No volume data loaded. Enter a token address to start.
+               </div>
+            ) : (
+              volumeData.map((d, i) => (
+                <div key={i} className="group relative flex flex-col gap-1 items-center">
+                   {/* Tooltip */}
+                   <div className="absolute bottom-full mb-2 hidden group-hover:block z-10 w-max bg-black text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none">
+                     {new Date(d.time).toLocaleString()} - {d.count} txs
+                   </div>
+                   {/* Bar/Block */}
+                   <div 
+                     className={`w-3 rounded-sm transition-all hover:ring-2 hover:ring-offset-1 hover:ring-green-500 ${getIntensity(d.count)}`}
+                     style={{ height: '24px' }} // Fixed height blocks for grid look
+                   ></div>
+                   {/* Or for pure grid look like reference, we stack them. Let's do a single row for hourly timeline for now */}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Section: 2 Cols */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Live Feed (Left) */}
+          <div className="lg:col-span-1 border border-gray-200 rounded-xl p-6 shadow-sm h-fit">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-4">Live Activity</h3>
+            <div className="space-y-4">
+               {/* Mock Live Items if empty */}
+               <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                 <div className="flex items-center gap-3">
+                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                   <div>
+                     <p className="text-sm font-medium">Buying Pressure</p>
+                     <p className="text-xs text-gray-400">2 mins ago</p>
+                   </div>
+                 </div>
+                 <span className="text-sm font-mono">+450 SOL</span>
+               </div>
+               <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                 <div className="flex items-center gap-3">
+                   <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                   <div>
+                     <p className="text-sm font-medium">Whale Exit</p>
+                     <p className="text-xs text-gray-400">5 mins ago</p>
+                   </div>
+                 </div>
+                 <span className="text-sm font-mono">-1,200 SOL</span>
+               </div>
+            </div>
+          </div>
+
+          {/* Detected Cabals (Right - Wider) */}
+          <div className="lg:col-span-2 border border-gray-200 rounded-xl p-6 shadow-sm min-h-[400px]">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold">Detected Cabals</h3>
+              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
+                {cabals.length} Found
+              </span>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 text-gray-400">
-                    <th className="pb-3 pl-2">Leader Wallet</th>
-                    <th className="pb-3">Followers</th>
-                    <th className="pb-3">24h Volume</th>
-                    <th className="pb-3">Tags</th>
-                    <th className="pb-3 text-right pr-2">Action</th>
+                  <tr className="border-b border-gray-100 text-gray-500 uppercase tracking-wider text-xs">
+                    <th className="pb-4 pl-2 font-medium">Leader Wallet</th>
+                    <th className="pb-4 font-medium">Followers</th>
+                    <th className="pb-4 font-medium">Confidence</th>
+                    <th className="pb-4 text-right pr-2 font-medium">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700">
-                  {cabals.map((cabal) => (
-                    <tr key={cabal.id} className="hover:bg-gray-750 transition-colors">
-                      <td className="py-4 pl-2 font-mono text-blue-400">{cabal.leader}</td>
-                      <td className="py-4">{cabal.followers} Wallets</td>
-                      <td className="py-4 text-green-400">{cabal.volume}</td>
-                      <td className="py-4">
-                        <div className="flex gap-2">
-                          {cabal.tags.map((tag, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-gray-700 rounded text-xs text-gray-300 border border-gray-600">{tag}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-4 text-right pr-2">
-                        <button className="text-xs text-green-400 hover:text-green-300 underline">Analyze</button>
+                <tbody className="divide-y divide-gray-50">
+                  {cabals.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="py-12 text-center text-gray-400">
+                        No cabals detected. Run a scan to find patterns.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    cabals.map((c, i) => (
+                      <tr key={i} className="group hover:bg-gray-50 transition-colors">
+                        <td className="py-4 pl-2 font-mono text-gray-600 group-hover:text-black">
+                          {c.leader.slice(0, 6)}...{c.leader.slice(-4)}
+                        </td>
+                        <td className="py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{c.follower_count}</span>
+                            <span className="text-gray-400 text-xs">wallets</span>
+                          </div>
+                        </td>
+                        <td className="py-4">
+                           <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                             <div 
+                               className="h-full bg-green-600" 
+                               style={{ width: `${Math.min(c.follower_count * 10, 100)}%` }}
+                             ></div>
+                           </div>
+                        </td>
+                        <td className="py-4 text-right pr-2">
+                          <button className="text-xs border border-gray-200 hover:border-black hover:bg-black hover:text-white px-3 py-1.5 rounded transition-all">
+                            Analyze Graph
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
-
-            {cabals.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                No cabals detected yet. Start tracking wallets to build the graph.
-              </div>
-            )}
           </div>
+
         </div>
       </main>
     </div>
