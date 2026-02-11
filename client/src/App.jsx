@@ -6,21 +6,36 @@ function App() {
   const [cabals, setCabals] = useState([])
   const [loading, setLoading] = useState(false)
   const [scanning, setScanning] = useState(false)
-  const [timeframe, setTimeframe] = useState('24h') // 24h, 7d, custom
+  const [timeframe, setTimeframe] = useState('24h') 
+  const [customRange, setCustomRange] = useState({ start: '', end: '' })
+  const [showCustomRange, setShowCustomRange] = useState(false)
 
   // Fetch Volume Data
   const fetchVolume = async () => {
+    if (!tokenAddress) return
     setLoading(true)
     try {
       const res = await fetch(`http://localhost:5000/api/volume/${tokenAddress}`)
       const data = await res.json()
       if (data.success) {
-        setVolumeData(data.heatmap)
+        console.log("Volume Data:", data.heatmap) // DEBUG
+        setVolumeData(data.heatmap || []) 
       }
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Handle Timeframe Change
+  const handleTimeframeChange = (e) => {
+    const val = e.target.value
+    setTimeframe(val)
+    if (val === 'custom') {
+      setShowCustomRange(true)
+    } else {
+      setShowCustomRange(false)
     }
   }
 
@@ -100,9 +115,26 @@ function App() {
                 placeholder="Enter SOL token address..."
               />
               
+              {showCustomRange && (
+                <div className="flex gap-2">
+                  <input 
+                    type="date"
+                    value={customRange.start}
+                    onChange={(e) => setCustomRange({...customRange, start: e.target.value})}
+                    className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                  <input 
+                    type="date"
+                    value={customRange.end}
+                    onChange={(e) => setCustomRange({...customRange, end: e.target.value})}
+                    className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
+              )}
+
               <select 
                 value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value)}
+                onChange={handleTimeframeChange}
                 className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all text-gray-700"
               >
                 <option value="24h">Last 24h</option>
