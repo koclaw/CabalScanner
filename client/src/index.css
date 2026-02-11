@@ -1,10 +1,11 @@
-@import "geist/style.css";
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: "Geist Sans", sans-serif;
+  font-family: "Geist", sans-serif;
 }
 
 body {
