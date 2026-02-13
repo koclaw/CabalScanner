@@ -8,6 +8,8 @@ function App() {
   const [scanning, setScanning] = useState(false)
   const [timeframe, setTimeframe] = useState('24h') 
   const [selectedLeader, setSelectedLeader] = useState(null)
+  const [customRange, setCustomRange] = useState({ start: '', end: '' })
+  const [showCustomRange, setShowCustomRange] = useState(false)
 
   // Stats Calculation
   const stats = {
