@@ -11,6 +11,9 @@ function App() {
   const [customRange, setCustomRange] = useState({ start: '', end: '' })
   const [showCustomRange, setShowCustomRange] = useState(false)
 
+  // API Base URL
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   // Stats Calculation
   const stats = {
     totalTxs: Array.isArray(volumeData) ? volumeData.reduce((acc, curr) => acc + (curr.count || 0), 0) : 0,
@@ -24,7 +27,7 @@ function App() {
     if (!tokenAddress) return
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:5000/api/volume/${tokenAddress}`)
+      const res = await fetch(`${API_URL}/api/volume/${tokenAddress}`)
       const data = await res.json()
       if (data.success) {
         console.log("Volume Data:", data.heatmap) // DEBUG
@@ -52,7 +55,7 @@ function App() {
   const scanCabals = async () => {
     setScanning(true)
     try {
-      const res = await fetch(`http://localhost:5000/api/scan/${tokenAddress}`, { 
+      const res = await fetch(`${API_URL}/api/scan/${tokenAddress}`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timeframe })
@@ -71,7 +74,7 @@ function App() {
 
   const fetchCabals = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/cabals')
+      const res = await fetch(`${API_URL}/api/cabals`)
       const data = await res.json()
       setCabals(data)
     } catch (err) {
