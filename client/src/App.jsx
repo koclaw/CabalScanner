@@ -13,10 +13,10 @@ function App() {
 
   // Stats Calculation
   const stats = {
-    totalTxs: volumeData.reduce((acc, curr) => acc + curr.count, 0),
-    activeWallets: new Set(cabals.map(c => c.leader).concat(cabals.flatMap(c => c.followers ? c.followers.split(',') : []))).size,
-    cabalsFound: cabals.length,
-    suspiciousVol: cabals.reduce((acc, c) => acc + (c.volume || 0), 0) // Placeholder if backend sends volume
+    totalTxs: Array.isArray(volumeData) ? volumeData.reduce((acc, curr) => acc + (curr.count || 0), 0) : 0,
+    activeWallets: Array.isArray(cabals) ? new Set(cabals.map(c => c.leader).concat(cabals.flatMap(c => c.followers ? c.followers.split(',') : []))).size : 0,
+    cabalsFound: Array.isArray(cabals) ? cabals.length : 0,
+    suspiciousVol: Array.isArray(cabals) ? cabals.reduce((acc, c) => acc + (c.volume || 0), 0) : 0 
   }
 
   // Handle Timeframe Change
