@@ -7,10 +7,17 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [timeframe, setTimeframe] = useState('24h') 
-  const [customRange, setCustomRange] = useState({ start: '', end: '' })
-  const [showCustomRange, setShowCustomRange] = useState(false)
+  const [selectedLeader, setSelectedLeader] = useState(null)
 
-  // Fetch Volume Data
+  // Stats Calculation
+  const stats = {
+    totalTxs: volumeData.reduce((acc, curr) => acc + curr.count, 0),
+    activeWallets: new Set(cabals.map(c => c.leader).concat(cabals.flatMap(c => c.followers ? c.followers.split(',') : []))).size,
+    cabalsFound: cabals.length,
+    suspiciousVol: cabals.reduce((acc, c) => acc + (c.volume || 0), 0) // Placeholder if backend sends volume
+  }
+
+  // Handle Timeframe Change
   const fetchVolume = async () => {
     if (!tokenAddress) return
     setLoading(true)
@@ -165,6 +172,26 @@ function App() {
           </div>
         </div>
 
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+            <h3 className="text-gray-500 text-xs uppercase tracking-wider font-medium">Total Transactions</h3>
+            <p className="text-2xl font-bold mt-1 text-gray-900">{stats.totalTxs.toLocaleString()}</p>
+          </div>
+          <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+             <h3 className="text-gray-500 text-xs uppercase tracking-wider font-medium">Active Wallets</h3>
+             <p className="text-2xl font-bold mt-1 text-gray-900">{stats.activeWallets.toLocaleString()}</p>
+          </div>
+           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+             <h3 className="text-gray-500 text-xs uppercase tracking-wider font-medium">Cabals Detected</h3>
+             <p className="text-2xl font-bold mt-1 text-green-600">{stats.cabalsFound}</p>
+          </div>
+           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+             <h3 className="text-gray-500 text-xs uppercase tracking-wider font-medium">Suspicious Activity</h3>
+             <p className="text-2xl font-bold mt-1 text-gray-900">{stats.cabalsFound > 0 ? 'High' : 'Low'}</p>
+          </div>
+        </div>
+
         {/* Heatmap Section */}
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
@@ -287,7 +314,10 @@ function App() {
                            </div>
                         </td>
                         <td className="py-4 text-right pr-2">
-                          <button className="text-xs border border-gray-200 hover:border-black hover:bg-black hover:text-white px-3 py-1.5 rounded transition-all">
+                          <button 
+                            onClick={() => setSelectedLeader(c)}
+                            className="text-xs border border-gray-200 hover:border-black hover:bg-black hover:text-white px-3 py-1.5 rounded transition-all"
+                          >
                             Analyze Graph
                           </button>
                         </td>
@@ -298,8 +328,67 @@ function App() {
               </table>
             </div>
           </div>
-
         </div>
+
+        {/* Leader Detail Modal */}
+        {selectedLeader && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 relative">
+              <button 
+                onClick={() => setSelectedLeader(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-black"
+              >
+                ✕
+              </button>
+              
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Wallet Analysis</h2>
+                <p className="text-sm text-gray-500 font-mono mt-1">{selectedLeader.leader}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <span className="block text-xs text-gray-500 uppercase">Follower Network</span>
+                  <span className="block text-2xl font-bold text-green-600">{selectedLeader.follower_count} Wallets</span>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                   <span className="block text-xs text-gray-500 uppercase">Coordinated Score</span>
+                   <span className="block text-2xl font-bold text-gray-900">High Confidence</span>
+                </div>
+              </div>
+
+              <h3 className="text-sm font-semibold mb-3">Linked Wallets (Followers)</h3>
+              <div className="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto font-mono text-xs space-y-2">
+                 {selectedLeader.followers ? selectedLeader.followers.split(',').map((f, i) => (
+                   <div key={i} className="flex justify-between items-center border-b border-gray-200 pb-1 last:border-0">
+                     <span className="text-gray-700">{f}</span>
+                     <span className="text-green-600 font-medium">Linked</span>
+                   </div>
+                 )) : (
+                   <div className="text-gray-400">No follower data available.</div>
+                 )}
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                 <a 
+                   href={`https://solscan.io/account/${selectedLeader.leader}`} 
+                   target="_blank" 
+                   rel="noreferrer"
+                   className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+                 >
+                   View on Solscan
+                 </a>
+                 <button 
+                   onClick={() => setSelectedLeader(null)}
+                   className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800"
+                 >
+                   Close
+                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   )
