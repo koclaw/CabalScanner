@@ -112,10 +112,10 @@ function App() {
       <main className="max-w-7xl mx-auto space-y-8">
         
         {/* Search & Actions */}
-        <div className="flex gap-4 items-end">
-          <div className="flex-1">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="w-full flex-1">
             <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Token Contract Address</label>
-            <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row gap-2">
               <input 
                 type="text" 
                 value={tokenAddress}
